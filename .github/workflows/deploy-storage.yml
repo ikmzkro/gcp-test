@@ -11,6 +11,8 @@ on:
 env:
   JSON_DIR: data/json/
   GCR_REPO_NAME: "gcp-test"
+  GCR_REPO_LOCATION: us-central1
+  GCR_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCR_SERVICE_ACCOUNT_EMAIL }}
 
 jobs:
   deploy:
@@ -27,3 +29,5 @@ jobs:
       - name: Setup Artifact Registry
         run: |
           gcloud config set artifacts/repository $GCR_REPO_NAME
+          gcloud config set artifacts/location $GCR_REPO_LOCATION
+          gcloud config set account $GCR_SERVICE_ACCOUNT_EMAIL
