@@ -9,8 +9,14 @@ on:
   workflow_dispatch:
 
 env:
-  # 環境変数
   JSON_DIR: data/json/
+  GCR_REPO_NAME: "gcp-test"
+  GCR_REPO_LOCATION: us-central1
+  ARTIFACT_REGISTORY_REGION: us-central1-docker.pkg.dev
+  CONTAINER_NAME: "gcp-test-container"
+  GCR_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCR_SERVICE_ACCOUNT_EMAIL }}
+  GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY }}
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
 
 jobs:
   deploy:
@@ -24,24 +30,27 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_KEY }}
 
-      - name: Decode GCP Service Account Key
+      - name: Set env vars for dev
         run: |
-          echo "${{ secrets.GCP_KEY_BASE64 }}" | base64 -d > temp-sa.json
+          echo "DOCKER_IMAGE_REGISTORY=$ARTIFACT_REGISTORY_REGION/$GCP_PROJECT_ID/$GCR_REPO_NAME/$CONTAINER_NAME" >> $GITHUB_ENV
 
-      - name: Authenticate with gcloud using temp-sa.json
+      - name: Setup Artifact Registry
         run: |
-          gcloud auth activate-service-account --key-file=temp-sa.json
+          gcloud config set artifacts/repository $GCR_REPO_NAME
+          gcloud config set artifacts/location $GCR_REPO_LOCATION
+          gcloud config set account $GCR_SERVICE_ACCOUNT_EMAIL
+          gcloud auth activate-service-account $GCR_SERVICE_ACCOUNT_EMAIL \
+          --key-file=$GOOGLE_APPLICATION_CREDENTIALS --project=$GCP_PROJECT_ID
+          gcloud auth configure-docker $ARTIFACT_REGISTORY_REGION
 
-      - name: Create GCS Bucket
+      - name: Push Docker Image to Artifact Registry
+        env:
+          DOCKER_BUILDKIT: 1
         run: |
-          if ! gsutil ls ${{ secrets.GCS_BUCKET_PATH }}; then
-            gsutil mb -p ${{ secrets.PROJECT_ID }} -c ${{ secrets.STORAGE_CLASS }} -l ${{ secrets.BUCKET_REGION }} -b off ${{ secrets.GCS_BUCKET_PATH }}
-          fi
-
-      - name: Upload JSON data to GCS
-        run: |
-          gsutil -m rsync -r -d ${{ env.JSON_DIR }} ${{ secrets.GCS_BUCKET_PATH }}/${{ env.JSON_DIR }}
-
-      - name: Post Processing
-        run: |
-          rm -f temp-sa.json
+          docker build \
+            --cache-from=$DOCKER_IMAGE_REGISTORY:latest \
+            --build-arg BUILDKIT_INLINE_CACHE=1 . \
+            -t $DOCKER_IMAGE_REGISTORY:latest \
+            -t $DOCKER_IMAGE_REGISTORY:$IMAGE_TAG
+          docker push $DOCKER_IMAGE_REGISTORY:latest
+          docker push $DOCKER_IMAGE_REGISTORY:$IMAGE_TAG
