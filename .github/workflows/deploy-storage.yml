@@ -22,7 +22,7 @@ jobs:
       - name: Setup GCP
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_KEY }}
+          credentials_json: ${{ secrets.GCP_KEYBUG }}
 
       - name: Decode GCP Service Account Key
         run: |
