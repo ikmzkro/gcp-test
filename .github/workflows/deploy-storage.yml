@@ -23,25 +23,3 @@ jobs:
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_KEY }}
-
-      - name: Decode GCP Service Account Key
-        run: |
-          echo "${{ secrets.GCP_KEY_BASE64 }}" | base64 -d > temp-sa.json
-
-      - name: Authenticate with gcloud using temp-sa.json
-        run: |
-          gcloud auth activate-service-account --key-file=temp-sa.json
-
-      - name: Create GCS Bucket
-        run: |
-          if ! gsutil ls ${{ secrets.GCS_BUCKET_PATH }}; then
-            gsutil mb -p ${{ secrets.PROJECT_ID }} -c ${{ secrets.STORAGE_CLASS }} -l ${{ secrets.BUCKET_REGION }} -b off ${{ secrets.GCS_BUCKET_PATH }}
-          fi
-
-      - name: Upload JSON data to GCS
-        run: |
-          gsutil -m rsync -r -d ${{ env.JSON_DIR }} ${{ secrets.GCS_BUCKET_PATH }}/${{ env.JSON_DIR }}
-
-      - name: Post Processing
-        run: |
-          rm -f temp-sa.json
