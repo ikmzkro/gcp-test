@@ -5,7 +5,7 @@ on:
     paths:
       - "data/json/**"
     branches:
-      - staging
+      - main
   workflow_dispatch:
 
 env:
