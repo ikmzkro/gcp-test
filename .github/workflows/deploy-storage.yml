@@ -37,3 +37,15 @@ jobs:
           gcloud auth activate-service-account $GCR_SERVICE_ACCOUNT_EMAIL \
           --key-file=$GOOGLE_APPLICATION_CREDENTIALS --project=$GCP_PROJECT_ID
           gcloud auth configure-docker $ARTIFACT_REGISTORY_REGION
+
+      - name: Push Docker Image to Artifact Registry
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          docker build \
+            --cache-from=$DOCKER_IMAGE_REGISTORY:latest \
+            --build-arg BUILDKIT_INLINE_CACHE=1 . \
+            -t $DOCKER_IMAGE_REGISTORY:latest \
+            -t $DOCKER_IMAGE_REGISTORY:$IMAGE_TAG
+          docker push $DOCKER_IMAGE_REGISTORY:latest
+          docker push $DOCKER_IMAGE_REGISTORY:$IMAGE_TAG
