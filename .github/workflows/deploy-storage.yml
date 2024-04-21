@@ -13,6 +13,7 @@ env:
   GCR_REPO_NAME: "gcp-test"
   GCR_REPO_LOCATION: us-central1
   ARTIFACT_REGISTORY_REGION: us-central1-docker.pkg.dev
+  CONTAINER_NAME: "gcp-test-container"
   GCR_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCR_SERVICE_ACCOUNT_EMAIL }}
   GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY }}
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -28,6 +29,10 @@ jobs:
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_KEY }}
+
+      - name: Set env vars for dev
+        run: |
+          echo "DOCKER_IMAGE_REGISTORY=$ARTIFACT_REGISTORY_REGION/$GCP_PROJECT_ID/$GCR_REPO_NAME/$CONTAINER_NAME" >> $GITHUB_ENV
 
       - name: Setup Artifact Registry
         run: |
