@@ -9,8 +9,14 @@ on:
   workflow_dispatch:
 
 env:
-  # 環境変数
   JSON_DIR: data/json/
+  ARTIFACT_REGISTORY_REGION: us-central1-docker.pkg.dev
+  GC_PROJECT_ID: grand-ward-421010
+  GCR_REPO_NAME: your_repo_name
+  GCR_REPO_LOCATION: us-central1
+  CONTAINER_NAME: your_container_name
+  IMAGE_TAG: latest
+  GCR_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCR_SERVICE_ACCOUNT_EMAIL_DEV }}
 
 jobs:
   deploy:
@@ -23,3 +29,24 @@ jobs:
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_KEY }}
+
+      - name: Setup Artifact Registry
+        run: |
+          gcloud config set artifacts/repository $GCR_REPO_NAME
+          gcloud config set artifacts/location $GCR_REPO_LOCATION
+          gcloud config set account $GCR_SERVICE_ACCOUNT_EMAIL
+
+      - name: Push image to Artifact Registry
+        run: |
+          gcloud auth configure-docker $ARTIFACT_REGISTORY_REGION
+          docker build -t $ARTIFACT_REGISTORY_REGION/$GC_PROJECT_ID/$GCR_REPO_NAME/$CONTAINER_NAME:$IMAGE_TAG .
+          docker push $ARTIFACT_REGISTORY_REGION/$GC_PROJECT_ID/$GCR_REPO_NAME/$CONTAINER_NAME:$IMAGE_TAG
+
+      - name: Login to Artifact Registry with Docker Credential
+        run: |
+          gcloud auth configure-docker $ARTIFACT_REGISTORY_REGION
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t $ARTIFACT_REGISTORY_REGION/$GC_PROJECT_ID/$GCR_REPO_NAME/$CONTAINER_NAME:$IMAGE_TAG .
+          docker push $ARTIFACT_REGISTORY_REGION/$GC_PROJECT_ID/$GCR_REPO_NAME/$CONTAINER_NAME:$IMAGE_TAG
